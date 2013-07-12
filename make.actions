@@ -1,0 +1,143 @@
+#
+# For inclusion at the end of a makefile
+#
+
+ifeq ($(QUIET),true)
+SHUSH := @
+endif
+
+# If OBJS unspecified, convert SRCS into OBJS
+#
+ifeq ($(OBJS),)
+OBJS := $(SRCS_TO_OBJS)
+endif
+
+DEPS := $(OBJS:.o=.d)
+include $(DEPS)
+
+ifneq ($(LIBRARY),)
+$(LIBRARY): $(OBJS)
+ifeq ($(QUIET),true)
+	@echo "###    Linking: $@"
+endif
+	@rm -f $(LIBRARY)
+	$(SHUSH)$(AR) cr $(LIBRARY) $(OBJS) $(LIBOBJS)	
+endif
+
+ifneq ($(SHLIB),)
+ifeq ($(origin SHLIB_MAJOR), undefined)
+SHLIB_NAME := $(SHLIB)
+SHLIB_SONAME :=
+else
+ifeq ($(origin SHLIB_MINOR), undefined)
+SHLIB_NAME := $(SHLIB).$(SHLIB_MAJOR)
+else
+SHLIB_NAME := $(SHLIB).$(SHLIB_MAJOR).$(SHLIB_MINOR)
+endif
+SHLIB_SONAME := -soname $(SHLIB).$(SHLIB_MAJOR)
+endif
+$(SHLIB_NAME): $(OBJS)
+ifeq ($(QUIET),true)
+	@echo "###    Linking: $@"
+endif
+	$(SHUSH)$(LD) -Bshareable -o $(SHLIB_NAME) $(SHLIB_SONAME) $(OBJS) $(LIBBASE) $(LIBS)
+ifneq ($(SHLIB), $(SHLIB_NAME))
+	ln -sf $(SHLIB_NAME) $(SHLIB)
+endif
+endif
+
+ifneq ($(BINARY),)
+$(BINARY): $(OBJS)
+ifeq ($(QUIET),true)
+	@echo "###    Linking: $@"
+endif
+	$(SHUSH)$(LD) -dN -Ttext $(ENTRY) -o $(BINARY) $(CRT0) $(OBJS) $(LIBBASE) $(LIBS)
+ifeq ($(STRIP),true)
+	$(SHUSH)$(CP) $(BINARY).bin $(BINARY).debug
+	$(SHUSH)$(ST) $(BINARY).bin
+endif
+endif
+
+subdirs::
+ifneq ($(SUBDIRS),)
+ifeq ($(BUILDLOG),)
+	@for i in $(SUBDIRS) ; \
+		do echo "--- Directory: $$i"; \
+		$(MAKE) -C $$i ; \
+	done
+else
+	@for i in $(SUBDIRS) ; \
+		do echo "---  Directory: $$i"; \
+		export BUILDLOG=$(BUILDLOG) ; \
+		if $(MAKE) -C $$i ; then \
+			echo "OKAY `pwd`/$$i" >> $(BUILDLOG); \
+		else \
+			echo "FAIL `pwd`/$$i" >> $(BUILDLOG); \
+		fi ; \
+	done
+endif
+endif
+
+subclean::
+ifneq ($(SUBDIRS),)
+	@for i in $(SUBDIRS) ; \
+		do echo "---   Cleaning: $$i"; \
+		$(MAKE) -C $$i clean ; \
+	done
+endif
+
+all:: check_path $(PRETARGETS) subdirs $(BINARY) $(LIBRARY) $(SHLIB_NAME) $(TARGETS)
+
+clean:: check_path subclean
+	@rm -f $(OBJS) $(LIBOBJS) $(BINARY) $(LIBRARY) $(SHLIB) $(SHLIB_NAME) $(PRETARGETS) $(TARGETS) *.debug *.d
+
+realclean:: clean
+	@rm -f *.d
+
+#############################################
+# rules for compilation of individual files
+#############################################
+DEP_FLAGS := -M -MG $(CFLAGS)
+
+%.o: %.cpp	
+ifeq ($(QUIET),true)
+	@echo "###  Compiling: $<"
+endif
+	$(SHUSH)$(C++) $(CXXFLAGS) -c $<
+
+%.o: %.c
+ifeq ($(QUIET),true)
+	@echo "###  Compiling: $<"
+endif
+	$(SHUSH)$(CC) $(CFLAGS) -c $<
+
+%.o: %.S
+ifeq ($(QUIET),true)
+	@echo "### Assembling: $<"
+endif
+	$(SHUSH)$(CC) $(CFLAGS) -S -o $@ $<
+
+%.o: %.S
+ifeq ($(QUIET),true)
+	@echo "### Assembling: $<"
+endif
+	$(SHUSH)$(CC) $(CFLAGS) -D__ASM__ -c $<
+
+%.d: %.c
+ifeq ($(QUIET),true)
+	@echo "###   MakeDeps: $<"
+endif
+	$(SHUSH)$(CC) $(DEP_FLAGS) $< > $@
+
+%.d: %.S
+ifeq ($(QUIET),true)
+	@echo "###   MakeDeps: $<"
+endif
+	$(SHUSH)$(CC) -D__ASM__ $(DEP_FLAGS) $< > $@
+
+%.d: %.cpp
+ifeq ($(QUIET),true)
+	@echo "###   MakeDeps: $<"
+endif
+	$(SHUSH)$(C++) $(DEP_FLAGS) $< > $@
+

@@ -1,0 +1,16 @@
+- probe for busses
+- support multiple busses
+- distinguish between disks and cdroms and such
+- error checking
+- write support
+- proper initialisation of controller
+
+done
+----
+
+bugs
+----
+- stuff works, turn off machine, go to sleep, wake up, turn on machine,
+  stuff is broken, boot freebsd, turn off, turn on, stuff works.  i have
+  no idea what causes this.
+

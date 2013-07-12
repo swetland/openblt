@@ -1,0 +1,9 @@
+
+
+803e1ffc: 00000000  tss->esp0 contains this address (top of kernel stack)
+803e1ff8: 0000002b  SS ?
+803e1ff4: 003fff6c  ESP
+803e1ff0: 00014293  EFLAGS
+803e1fec: 00000023  CS
+803e1fe8: 0000052a  EIP
+803e1fe3: 00010004  error  (ESP points here on entry to trap) 

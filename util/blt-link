@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# $Id: //depot/blt/util/link#1 $
+#
+# Copyright 1998 Sidney Cammeresi
+# All rights reserved.
+#
+# You may use this file in accordance with the license of this distribution.
+#
+# Script to generate dynamically linked executables
+
+gcc -nostdlib -nostartfiles $BLTSRCDIR/lib/crt0.o -L$BLTHOME/lib/obj -e _start -Wl,-dynamic-linker,/system/lib/rtld,-T,$BLTSRCDIR/util/blt_i386.x $@
+

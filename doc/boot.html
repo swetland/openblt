@@ -1,0 +1,190 @@
+<HTML>
+<HEAD>
+<TITLE>Booting 'n Stuff</TITLE>
+</HEAD>
+<BODY BGCOLOR="#ffffff">
+
+<CENTER>
+<TABLE WIDTH=600>
+
+
+<TR BGCOLOR="#a0a0a0"><TD><B>About uBoot</B></TD></TR>
+<TR><TD><BR>
+The uBoot system is intended to provide a simple mechanism for booting
+microkernel OS's from one self-contained file in various environments.
+<UL>
+<LI>From a remote network host
+<LI>From the boot sector of a floppy disk
+<LI>From a file on a DOS partition
+</UL>
+The boot image is not simply an executable file, but a 'filesystem' of sorts,
+containing a 2nd stage bootstrap, and whatever other images are needed by
+the target system.  A utility (bootmaker) is used to create this boot 
+image from a description file and various components.
+<BR><BR><BR></TD></TR>
+
+<TR BGCOLOR="#a0a0a0"><TD><B>Boot Environment</B></TD></TR>
+<TR><TD><BR>
+
+<TABLE BORDER=1>
+<TR><TH>member</TH><TH>type</TH><TH>description</TH></TR>
+<TR><TD>be_name</TD><TD>char[32]</TD><TD>
+Name of the object.  Zero terminated ASCII.  Entry 0 is always named
+"SBBB/Directory".
+</TD></TR>
+<TR><TD>be_offset</TD><TD>uint32</TD><TD>
+Offset (in 4K pages) from the start of the image to the start of this
+entry.
+</TD></TR>
+<TR><TD>be_type</TD><TD>uint32</TD><TD>
+The object type of the entry.  One of the defined types listed below,
+or a system-specific type.  Entry 0 must be BE_TYPE_DIRECTORY and entry 1
+must be BE_TYPE_BOOTSTRAP.
+</TD></TR>
+<TR><TD>be_size</TD><TD>uint32</TD><TD>
+The size (in 4K pages) of this entry in the image.
+</TD></TR>
+<TR><TD>be_vsize</TD><TD>uint32</TD><TD>
+The size (in 4K pages) that this entry would like when mapped into memory.
+</TD></TR>
+<TR><TD>be_extra0</TD><TD>uint32</TD><TD>
+extra field
+</TD></TR>
+<TR><TD>be_extra1</TD><TD>uint32</TD><TD>
+extra field
+</TD></TR>
+<TR><TD>be_extra2</TD><TD>uint32</TD><TD>
+extra field
+</TD></TR>
+<TR><TD>be_extra3</TD><TD>uint32</TD><TD>
+extra field
+</TD></TR>
+</TABLE>
+
+<UL>
+<LI>The boot image will be located starting at 0x100000.
+<LI>The boot directory (64 entries) will be located at offset 0 of the
+boot image (also 0x100000.
+<LI>Entry 0 in the directory must be the directory itself (be_offset = 0,
+be_type = BE_TYPE_DIRECTORY, be_size = 1, be_vsize = 1)
+<LI>Entry 1 in the directory must be the 2nd stage loader (or kernel if
+the kernel is sufficiently simple).  be_offset = 1, be_type = BE_TYPE_BOOTSTRAP
+<LI>Once the Image is loaded, control is transferred to 
+boot_dir->bd_entry[1].be_extra1 + 0x101000;
+<LI>The bootstrap entry point looks like:<BR>
+<TT>void _start(uint32 mem, char *params, boot_dir *bd);</TT><BR>
+mem = system memory size (in bytes), params = zero terminate parameter 
+string, bd = 0x100000
+<LI>The last entry will be of type BE_TYPE_NONE to indicate the end of
+the directory
+</UL>
+<PRE>
+
+typedef struct {
+    char          be_name[32];  /* asciiZ   */
+    unsigned int  be_offset;    /* 4K pages */
+    unsigned int  be_type;      /* BE_*     */
+    unsigned int  be_size;      /* 4K pages */
+    unsigned int  be_vsize;     /* 4K pages */
+    unsigned int  be_extra0;
+    unsigned int  be_extra1;
+    unsigned int  be_extra2;
+    unsigned int  be_extra3;
+} boot_entry;
+
+typedef struct {
+    boot_entry bd_entry[64];
+} boot_dir;
+
+#define BE_TYPE_NONE         0  /* empty entry            */
+#define BE_TYPE_DIRECTORY    1  /* directory (entry 0)    */
+#define BE_TYPE_BOOTSTRAP    2  /* bootstrap code object  */
+#define BE_TYPE_CODE         3  /* executable code object */
+#define BE_TYPE_DATA         4  /* raw data object        */
+#define BE_TYPE_ELF32        5  /* 32bit ELF object       */
+
+/* for BE_TYPE_CODE / BE_TYPE_BOOTSTRAP */
+#define be_code_vaddr be_extra0 /* virtual address (rel offset 0)     */
+#define be_code_ventr be_extra1 /* virtual entry point (rel offset 0) */
+</PRE>
+<BR></TD></TR>
+
+<TR BGCOLOR="#a0a0a0"><TD><B>BootMaker (building the image)</B></TD></TR>
+<TR><TD><BR>
+
+The bootmaker util reads description file that looks like:
+
+<PRE>
+# Boot Image for stock OpenBLT
+#
+
+[bootstrap]
+type=boot
+file=boot/boot.bin
+ventry=128
+
+[kernel]
+type=code
+file=kernel/kernel.bin
+
+[namer]
+type=code
+file=srv/namer/namer.bin
+
+[console]
+type=code
+file=srv/console/console.bin
+</PRE>
+
+Each section (headed by a name in []'s) is an entry in the boot directory,
+starting with entry 1 (entry 0 being the directory itself).  Each entry
+must have a valid type and a valid file to load.  Some entry types will
+allow extra params (eg ventry in a type=boot entry). Valid types are
+boot -> BE_TYPE_BOOTSTRAP, code -> BE_TYPE_CODE, elf32 -> BE_TYPE_ELF32,
+data -> BE_TYPE_DATA. 
+<P> A mechanism for defining your own types and meanings
+for the extra[0123] fields will be available soon.  The name in the []'s
+starting the section will be placed in be_name.  The first entry should
+be a bootstrap entry (as the bootloader will transfer control into it
+whether it is or no.
+<P>
+<P>
+<TT>bootmaker &lt;descr_file&gt; &lt;bootimage_file&gt; [ -floppy ]</TT><P>
+The bootmaker util reads the descr_file, writes the bootimage_file, and
+if the optional -floppy flag is specified, the bootimage_file will be
+a disk image suitable for rawriting or copying with dd.
+
+<BR><BR><BR></TD></TR>
+
+<TR BGCOLOR="#a0a0a0"><TD><B>boot.com (loading the image)</B></TD></TR>
+<TR><TD><BR>
+The DOS bootloader (boot.com) can be invoked in two ways:
+<P>
+<TT>boot.com bootfile</TT><BR>
+Will load the boot image in bootfile to 0x100000 and transfer control
+to it as described above.
+<P>
+<TT>boot.com net=ip=x.y.z.w</TT><BR>
+Will load the netboot bootstrap out of netboot.bin (this will be bundled
+in boot.com in the next revision) and start a netboot server, waiting for
+a unix netboot client to send it a boot image file (see below).
+
+<BR><BR><BR></TD></TR>
+
+<TR BGCOLOR="#a0a0a0"><TD><B>NetBoot Client</B></TD></TR>
+<TR><TD><BR>
+<TT>netboot &lt;bootfile&gt; &lt;ip_address&gt;</TT><BR>
+netboot will send the specified bootfile to the netboot server at the
+specified ip address.
+
+<BR><BR><BR></TD></TR>
+
+<TR BGCOLOR="#a0a0a0"><TD><B>BootMaker (building the image)</B></TD></TR>
+<TR><TD><BR>
+<BR></TD></TR>
+
+
+</TABLE>
+</CENTER>
+</BODY>
+</HTML>

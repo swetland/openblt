@@ -1,0 +1,17 @@
+This is a test harness for developing filesystem drivers under UNIX to
+be used on OpenBLT.  Its design was inspired by a similar system written
+by Dominic Giampaolo for designing BFS as described in *Practical
+Filesystem Design with the Be File System*.
+
+This code is guaranteed to build on OpenBSD/sparc, but should build on
+other UNIX systems.  It will probably also build on UNIX-like systems
+such as Linux.  I will eventually make it work on BeOS.  To build, type
+`make' as this is not built during a normal build.
+
+
+Some caveats:
+
+    - add -DVFS_SANDBOX to $(CF) in make.conf
+    - if you're using this on an architecture other than Intel, remember
+      to rebuild the driver you're testing, fs.o, super.o, and hash.o
+

@@ -1,0 +1,17 @@
+# $Id: //depot/blt/build/VULCAN/rc#1 $
+#
+# System initialisation script.  This is run by init after running
+# rc.boot to get enough services going to proceed normally.  We can
+# run any program here, so we must use full pathnames.
+
+# /boot/network
+# /boot/tell network load eth ipv4 arp ne
+# /boot/tell network probe ne
+# /boot/tell network config ne0 ipv4 up 10.0.1.5 255.255.255.0
+
+/boot/ide
+/boot/tell vfs load ffs
+/boot/mkdir /freebsd
+/boot/tell vfs mount ffs /freebsd ide/0/0/1a
+/boot/bltsh
+

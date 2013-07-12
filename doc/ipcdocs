@@ -1,0 +1,57 @@
+
+typedef struct {
+    int flags;
+    uint32 src;
+    uint32 dst;
+    uint32 size;
+    void *data;    
+} msg_hdr_t;
+
+int port_create(int restrict);
+/* Create a new port owned by the running thread.  Only allow messages from
+ * port 'restrict' to be received.  If 'restrict' is 0, messages from any
+ * source will be received.  Will return ERR_MEMORY if the system lacks the
+ * resources to create the port, otherwise the port number will be returned.
+*/
+  
+int port_destroy(uint32 port);
+/* Destroy an existing port.
+ * Returns ERR_RESOURCE if port is not a valid port or if there are other
+ * ports slaved to this port.  Returns ERR_PERMISSION if the running thread
+ * is not the owner of this port.  Returns ERR_NONE upon success/
+*/
+
+int port_send(msg_hdr_t *mh);
+/* Send the message in mh->data, of length mh->size from port mh->src to port
+ * mh->dst.  Returns mh->size upon success, ERR_MEMORY if there is a bounds
+ * error, ERR_RESOURCE if either the source or destination ports do not exist,
+ * ERR_PERMISSION if the source is not owned by the running thread or the
+ * destination is not sendable from the source port.
+*/
+
+int port_recv(msg_hdr_t *mh);
+/* Receive a message (in buffer mh->data, maxlen mh->size) from port mh->dst.
+ * Upon success, mh->src will be set to the sender, mh->dst will be set to
+ * the destination if it was a slaved port, and the number of received bytes
+ * will be returned.  If the data or header are out of bounds, ERR_MEMORY is
+ * returned.  If the destination port does not exist ERR_RESOURCE is returned.
+ * If the running thread does not own the destination port, ERR_PERMISSION is
+ * returned.  This call will block if no messages are available, unless the
+ * port is set to NOWAIT, in which case ERR_WOULDBLOCK is returned.
+*/
+
+int port_slave(uint32 master, uint32 slave);
+/* Cause the master port to receive all messages sent to the slave port.
+ * If master is 0, the slave is released from bondage.  Returns ERR_NONE
+ * upon success, ERR_PERMISSION if the master and slave are not both owned
+ * by the running thread, or ERR_RESOURCE if the master or slave are not
+ * valid ports.
+*/
+
+int port_set_restrict(uint32 port, uint32 restrict);
+/* Change the restriction on a port.  Returns ERR_NONE on success, ERR_RESOURCE
+ * if the port does not exits, or ERR_PERMISSION if the running thread does not
+ * own the port.  A restriction of 0 allows any port to send to this port.
+*/
+
+#endif

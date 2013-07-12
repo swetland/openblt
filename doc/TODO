@@ -1,0 +1,42 @@
+
+* area_destroy()
+* perm checking (area, sem, etc)
+* right_*()
+* stacks should be area_create()'d
+* thread_kill() / teardown
+* paging? copy-on-write?
+* console
+* if a non-owner sleeps on a readport it won't be awakened
+* ports; multiple readers?
+
+os_sleep() syscall -- timed sleep?  or maybe have a sleeper driver?
+port_option() -- allow for OPT_NOWAIT 
+resource reclaimation when a thread dies
+kernel memory pooling for getpages and kgetpages should actually exist
+overhaul aspaces to use spans and pspans
+modify system timer for faster preemption
+perms handoff by namer to other threads/tasks
+port groups
+
+standard support objects:
+namer.bin
+keyboard.bin
+console.bin
+idler.bin
+
+
+libc todos:
+malloc/free, using os_brk()
+
+
+struct msg_hdr  {
+    int from;
+    int to;
+    int size;
+    char *buf;
+}
+
+port_create(int restrict);
+port_delete(int port);
+port_send(struct msg_hdr *m);
+port_recv(struct msg_hdr *m);

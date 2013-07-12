@@ -1,0 +1,98 @@
+$Id: //depot/blt/doc/vfs.txt#4 $
+
+Documentation for the OpenBLT Virtual Filesystem
+------------------------------------------------
+
+This documentation is Copyright 1999 Sidney Cammeresi.  All rights reserved.
+
+
+
+Contents
+--------
+    1. Overview
+    2. File descriptor layer
+    3. Vnode layer
+    4. Filesystem layer
+
+    5. VFS server message protocol
+
+
+1. Overview
+-----------
+
+
+
+2. File descriptor layer
+------------------------
+
+This layer is not written yet.
+
+
+
+3. Vnode layer
+--------------
+
+
+
+4. Filesystem layer
+-------------------
+
+
+
+5. VFS server message protocol
+------------------------------
+
+vfs command and return parameters (a.k.a. data[] contents)
+
+
+static symbols are for use by libc only!
+
+
+static void __vfs_openconn (int src_port, int dest_port, int filename_area);
+============================================================================
+0   filename area
+
+0   private port for talking to vfs
+
+static void __vfs_scroll_area (int fd, int offset)
+==================================================
+0   vfs file descriptor
+1   new offset (in bytes for file, dirents for directory)
+
+0   number of bytes copied
+1   more?
+
+DIR *opendir (const char *dir)
+==============================
+0   filename offset
+1   payload area id
+2   payload offset
+3   payload length
+
+0   vfs file descriptor
+1   number of dirents in shmem
+2   more?
+
+int closedir (DIR *dirp)
+========================
+0   vfs file descriptor
+
+no output data
+
+int open (const char *path, int flags, mode_t mode)
+===================================================
+0   filename offset
+1   payload area id
+2   payload offset
+3   payload length
+
+0   vfs file descriptor
+1   length of data in shmem
+2   more?
+
+int stat (const char *path, struct stat *buf)
+=============================================
+0   filename offset
+
+no output data, but a (struct stat) follows the vfs_res_t
+

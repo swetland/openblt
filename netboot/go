@@ -1,0 +1,5 @@
+#!/bin/zsh
+cat netrom.bin netboot.bin > test.bin
+./makerom test.bin test.hex
+cp test.hex /dev/cua0
+

@@ -1,0 +1,14 @@
+#
+# BLT Naming Service
+#
+
+interface namer "/blt/system/namer" {
+	lookup(
+		in string:256 name,
+		out int32 port
+	)
+	register(
+		in string:256 name,
+		in int32 port
+	)
+}
